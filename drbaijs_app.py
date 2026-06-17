@@ -17,7 +17,19 @@ from sklearn.metrics import accuracy_score
 import requests
 import warnings
 warnings.filterwarnings('ignore')
+# Install: pip install nsepy
+import nsepy
 
+@st.cache_data(ttl=86400)
+def get_nse_stock_list():
+    """Get ALL NSE stocks using nsepy"""
+    try:
+        from nsepy import get_history
+        from nsepy.helpers import get_equity_list
+        stocks = get_equity_list()
+        return sorted(stocks)
+    except:
+        return get_comprehensive_stock_list()  # Fallback list
 # ---------------------------
 # PAGE CONFIG
 # ---------------------------
@@ -87,8 +99,8 @@ st.markdown("""
 # ---------------------------
 @st.cache_data(ttl=86400)
 def get_comprehensive_stock_list():
-    """Comprehensive list of Indian stocks"""
-    stocks = [
+    """Extended stock list with all major stocks"""
+    return sorted(set([
         # NIFTY 50
         'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK',
         'ITC', 'HINDUNILVR', 'SBIN', 'BHARTIARTL', 'KOTAKBANK',
@@ -103,17 +115,23 @@ def get_comprehensive_stock_list():
         # Your stocks
         'POLYCAB', 'BOSCHLTD', 'LLOYDSENGG', 'DIXON', 'HAL', 'ORKLAINDIA',
         
-        # More major stocks
+        # Add ALL missing stocks you want here
+        'HINDUNILVR', 'MARICO', 'DABUR', 'BRITANNIA', 'NESTLEIND',
+        'PIDILITIND', 'BERGEPAINT', 'ASIANPAINT', 'INDIGO', 'TATACONSUM',
+        
+        # BSE 100 and other major stocks
+        'HDFCLIFE', 'SBILIFE', 'ICICIPRULI', 'HDFCAMC', 'MUTHOOTFIN',
+        'CHOLAFIN', 'BAJAJFINSV', 'BAJFINANCE', 'LICHSGFIN', 'PFC', 'RECLTD',
+        'PEL', 'SRF', 'ATUL', 'DEEPAKNTR', 'PIDILITIND',
+        'ABB', 'SIEMENS', 'VOLTAS', 'CROMPTON', 'HAVELLS',
         'BEL', 'BHEL', 'NMDC', 'GAIL', 'IOC', 'BPCL', 'HINDPETRO',
         'HEROMOTOCO', 'BAJAJ-AUTO', 'EICHERMOT', 'TIINDIA', 'ESCORTS',
-        'HAVELLS', 'ABB', 'SIEMENS', 'CROMPTON', 'VOLTAS',
         'DLF', 'GODREJPROP', 'OBEROIRLTY', 'PHOENIXLTD',
-        'PEL', 'PIDILITIND', 'SRF', 'ATUL', 'DEEPAKNTR',
-        'LICHSGFIN', 'PFC', 'RECLTD',
-        'INDIGO', 'AUBANK', 'IDFCFIRSTB', 'BANKBARODA',
-        'CANBK', 'PNB', 'MUTHOOTFIN', 'CHOLAFIN', 'MANAPPURAM',
+        
+        # Mid cap and small cap
+        'IDEA', 'AIRTEL', 'JIOFIN', 'PAYTM', 'ZOMATO', 'SWIGGY',
+        'MRF', 'APOLLOTYRE', 'CEATLTD', 'BALKRISIND', 'MOTHERSUMI',
         'LUPIN', 'BIOCON', 'TORNTPHARM', 'AUROPHARMA', 'GLENMARK',
-        'MOTHERSUMI', 'BALKRISIND', 'APOLLOTYRE', 'MRF',
         'CONCOR', 'ADANIGREEN', 'ADANITRANS', 'VEDL', 'JINDALSTEL',
         'SAIL', 'NATIONALUM', 'HINDZINC'
     ]
