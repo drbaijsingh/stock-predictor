@@ -89,7 +89,6 @@ st.markdown("""
 def get_nse_stock_list():
     """Get ALL NSE stocks using multiple methods with fallback"""
     try:
-        # Try nsetools first (most reliable)
         from nsetools import Nse
         nse = Nse()
         stocks = nse.get_equity_list()
@@ -99,7 +98,6 @@ def get_nse_stock_list():
         pass
     
     try:
-        # Try nsepy as fallback
         from nsepy import get_history
         from nsepy.helpers import get_equity_list
         stocks = get_equity_list()
@@ -108,14 +106,12 @@ def get_nse_stock_list():
     except:
         pass
     
-    # Final fallback: comprehensive list
     return get_comprehensive_stock_list()
 
 @st.cache_data(ttl=86400)
 def get_comprehensive_stock_list():
     """Extended stock list with all major stocks"""
     stocks = [
-        # NIFTY 50
         'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK',
         'ITC', 'HINDUNILVR', 'SBIN', 'BHARTIARTL', 'KOTAKBANK',
         'LT', 'WIPRO', 'HCLTECH', 'ASIANPAINT', 'AXISBANK',
@@ -125,49 +121,25 @@ def get_comprehensive_stock_list():
         'BRITANNIA', 'HDFCLIFE', 'SBILIFE', 'INDUSINDBK', 'BAJAJFINSV',
         'HINDALCO', 'APOLLOHOSP', 'DRREDDY', 'CIPLA', 'DIVISLAB',
         'SUNPHARMA', 'UPL', 'SHREECEM', 'TECHM', 'ADANIENT',
-        
-        # Your specific stocks
         'POLYCAB', 'BOSCHLTD', 'LLOYDSENGG', 'DIXON', 'HAL', 'ORKLAINDIA',
-        
-        # FMCG
-        'MARICO', 'DABUR', 'GODREJCP', 'TATACONSUM', 'NESTLEIND',
-        'BRITANNIA', 'PIDILITIND', 'BERGEPAINT', 'ASIANPAINT',
-        
-        # Auto
+        'MARICO', 'DABUR', 'GODREJCP', 'TATACONSUM',
+        'PIDILITIND', 'BERGEPAINT', 'ASIANPAINT',
         'HEROMOTOCO', 'BAJAJ-AUTO', 'EICHERMOT', 'TIINDIA', 'ESCORTS',
         'MOTHERSUMI', 'APOLLOTYRE', 'MRF', 'BALKRISIND',
-        
-        # Pharma
         'LUPIN', 'BIOCON', 'TORNTPHARM', 'AUROPHARMA', 'GLENMARK',
-        'SUNPHARMA', 'DRREDDY', 'CIPLA', 'DIVISLAB',
-        
-        # Banking & Finance
         'HDFCLIFE', 'SBILIFE', 'ICICIPRULI', 'HDFCAMC', 'MUTHOOTFIN',
         'CHOLAFIN', 'BAJAJFINSV', 'BAJFINANCE', 'LICHSGFIN', 'PFC', 'RECLTD',
         'INDUSINDBK', 'AXISBANK', 'KOTAKBANK', 'HDFCBANK', 'ICICIBANK',
         'SBIN', 'BANKBARODA', 'CANBK', 'PNB', 'IDFCFIRSTB',
-        
-        # Capital Goods
         'ABB', 'SIEMENS', 'VOLTAS', 'CROMPTON', 'HAVELLS',
         'BEL', 'BHEL', 'NMDC', 'GAIL', 'IOC', 'BPCL', 'HINDPETRO',
-        'L&T', 'BHEL', 'PEL', 'SRF', 'ATUL', 'DEEPAKNTR',
-        
-        # Real Estate & Infrastructure
         'DLF', 'GODREJPROP', 'OBEROIRLTY', 'PHOENIXLTD',
         'CONCOR', 'ADANIGREEN', 'ADANITRANS', 'ADANIPORTS',
-        
-        # Metals & Mining
         'VEDL', 'JINDALSTEL', 'SAIL', 'NATIONALUM', 'HINDZINC',
         'TATASTEEL', 'HINDALCO', 'COALINDIA', 'NTPC', 'POWERGRID',
-        
-        # IT
         'TCS', 'INFY', 'WIPRO', 'HCLTECH', 'TECHM', 'LTTS',
-        
-        # Tech & New Age
         'IDEA', 'AIRTEL', 'JIOFIN', 'PAYTM', 'ZOMATO', 'SWIGGY',
         'INDIAMART', 'JUSTDIAL', 'NAUKRI',
-        
-        # Others
         'INDIGO', 'TATACONSUM', 'TITAN', 'GRASIM', 'ULTRACEMCO',
         'SHREECEM', 'ACC', 'AMBUJACEM'
     ]
@@ -181,7 +153,7 @@ def search_stocks(query, stock_list):
     return matches[:100]
 
 # ---------------------------
-# 2. TECHNICAL INDICATORS WITH VWAP
+# 2. TECHNICAL INDICATORS
 # ---------------------------
 def calculate_indicators(df):
     """Calculate comprehensive intraday indicators with VWAP"""
@@ -192,57 +164,47 @@ def calculate_indicators(df):
     low = data['Low'].squeeze()
     volume = data['Volume'].squeeze()
     
-    # VWAP (Volume Weighted Average Price)
     data['vwap'] = (data['Close'] * data['Volume']).cumsum() / data['Volume'].cumsum()
     data['vwap_dev'] = ((data['Close'] - data['vwap']) / data['vwap']) * 100
     
-    # Returns
     data['ret_1'] = close.pct_change(1)
     data['ret_3'] = close.pct_change(3)
     data['ret_5'] = close.pct_change(5)
     data['ret_10'] = close.pct_change(10)
     
-    # RSI
     delta = close.diff()
     gain = (delta.where(delta > 0, 0)).rolling(14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
     rs = gain / loss
     data['rsi'] = 100 - (100 / (1 + rs))
     
-    # MACD
     exp1 = close.ewm(span=12, adjust=False).mean()
     exp2 = close.ewm(span=26, adjust=False).mean()
     data['macd'] = exp1 - exp2
     data['macd_signal'] = data['macd'].ewm(span=9, adjust=False).mean()
     data['macd_hist'] = data['macd'] - data['macd_signal']
     
-    # Moving Averages
     data['ma_5'] = close.rolling(5).mean()
     data['ma_10'] = close.rolling(10).mean()
     data['ma_20'] = close.rolling(20).mean()
     data['ma_50'] = close.rolling(50).mean()
     
-    # Price vs MA
     data['vs_ma5'] = ((close - data['ma_5']) / data['ma_5']) * 100
     data['vs_ma10'] = ((close - data['ma_10']) / data['ma_10']) * 100
     data['vs_ma20'] = ((close - data['ma_20']) / data['ma_20']) * 100
     
-    # Bollinger Bands
     ma20 = close.rolling(20).mean()
     std20 = close.rolling(20).std()
     data['bb_upper'] = ma20 + (2 * std20)
     data['bb_lower'] = ma20 - (2 * std20)
     data['bb_pct_b'] = (close - ma20) / (2 * std20)
     
-    # Volume
     data['vol_ma_5'] = volume.rolling(5).mean()
     data['vol_ratio'] = volume / data['vol_ma_5']
     
-    # Volatility
     data['volatility'] = data['ret_1'].rolling(10).std()
     data['volatility_annual'] = data['volatility'] * np.sqrt(252)
     
-    # ATR
     tr1 = high - low
     tr2 = abs(high - close.shift())
     tr3 = abs(low - close.shift())
@@ -250,21 +212,17 @@ def calculate_indicators(df):
     data['atr'] = tr.rolling(14).mean()
     data['atr_pct'] = (data['atr'] / close) * 100
     
-    # Stochastic
     low_14 = low.rolling(14).min()
     high_14 = high.rolling(14).max()
     data['stoch_k'] = ((close - low_14) / (high_14 - low_14)) * 100
     data['stoch_d'] = data['stoch_k'].rolling(3).mean()
     
-    # Price position
     data['price_position'] = ((close - low.rolling(20).min()) / 
                               (high.rolling(20).max() - low.rolling(20).min())) * 100
     
-    # Support & Resistance
     data['resistance'] = high.rolling(20).max()
     data['support'] = low.rolling(20).min()
     
-    # Target
     data['target'] = (close.shift(-1) > close).astype(int)
     
     return data
@@ -279,7 +237,6 @@ def categorize_indicators(data):
     categories = {'Bullish': [], 'Bearish': [], 'Neutral': []}
     signals = []
     
-    # Helper to safely get values
     def safe_get(key, default=50):
         try:
             val = float(latest[key])
@@ -318,7 +275,7 @@ def categorize_indicators(data):
         categories['Bearish'].append(f"MACD: {macd_hist:.2f} (Bearish)")
         signals.append({'indicator': 'MACD', 'value': macd_hist, 'signal': 'Bearish', 'weight': 2})
     
-    # VWAP Deviation
+    # VWAP
     if vwap_dev > 2:
         categories['Bearish'].append(f"VWAP: {vwap_dev:.1f}% (Above)")
         signals.append({'indicator': 'VWAP', 'value': vwap_dev, 'signal': 'Bearish', 'weight': 1.5})
@@ -470,7 +427,6 @@ def generate_verdict(signals, ml_prob, price, atr_pct, importance):
     ml_score = (ml_prob - 50) / 50
     combined_score = (indicator_score * 0.55) + (ml_score * 0.45)
     
-    # Top features
     top_features = sorted(importance.items(), key=lambda x: x[1], reverse=True)[:3]
     top_names = [f"{name}" for name, val in top_features if val > 0.05]
     
@@ -530,7 +486,6 @@ def create_chart(df, symbol):
         subplot_titles=(f'{symbol} - Price with VWAP', 'RSI', 'Volume')
     )
     
-    # Price with VWAP
     fig.add_trace(
         go.Candlestick(
             x=df.index,
@@ -558,7 +513,6 @@ def create_chart(df, symbol):
         row=1, col=1
     )
     
-    # RSI
     fig.add_trace(
         go.Scatter(x=df.index, y=df['rsi'], name='RSI', line=dict(color='purple')),
         row=2, col=1
@@ -566,7 +520,6 @@ def create_chart(df, symbol):
     fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
     fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
     
-    # Volume
     colors = ['green' if c > o else 'red' for c, o in zip(df['Close'], df['Open'])]
     fig.add_trace(
         go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color=colors),
@@ -591,7 +544,6 @@ def create_chart(df, symbol):
 def main():
     st.markdown('<div class="main-header">🇮🇳 Intraday Stock Predictor - All Indian Stocks</div>', unsafe_allow_html=True)
     
-    # Try to get full NSE list, fallback to comprehensive
     try:
         stock_list = get_nse_stock_list()
     except:
@@ -653,7 +605,6 @@ def main():
                 atr_pct = df['atr_pct'].iloc[-1]
                 verdict = generate_verdict(signals, ml_prob, latest_price, atr_pct, importance)
                 
-                # Display verdict
                 col1, col2, col3 = st.columns([1, 2, 1])
                 with col2:
                     st.markdown(f"""
@@ -662,7 +613,6 @@ def main():
                     </div>
                     """, unsafe_allow_html=True)
                 
-                # Metrics
                 col1, col2, col3, col4, col5 = st.columns(5)
                 
                 with col1:
@@ -684,7 +634,6 @@ def main():
                 if accuracy > 0:
                     st.info(f"🎯 Model Accuracy: {accuracy*100:.1f}% on test data")
                 
-                # Indicator categorization
                 st.markdown("## 📊 Indicator Analysis")
                 
                 col1, col2, col3 = st.columns(3)
@@ -713,7 +662,6 @@ def main():
                     else:
                         st.markdown("*No bearish signals*")
                 
-                # Reasoning
                 st.markdown("## 💡 Reasoning")
                 st.info(f"""
                 **Verdict:** {verdict['verdict']}
@@ -727,7 +675,6 @@ def main():
                 **Expected Move:** ±{verdict['expected_move']:.2f}%
                 """)
                 
-                # Chart
                 st.markdown("## 📈 Price Chart with VWAP")
                 fig = create_chart(df, stock_symbol)
                 st.plotly_chart(fig, use_container_width=True)
@@ -753,4 +700,5 @@ def main():
 # ---------------------------
 # 8. RUN APP
 # ---------------------------
-if __name__
+if __name__ == "__main__":
+    main()
