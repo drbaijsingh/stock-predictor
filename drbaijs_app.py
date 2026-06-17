@@ -17,19 +17,7 @@ from sklearn.metrics import accuracy_score
 import requests
 import warnings
 warnings.filterwarnings('ignore')
-# Install: pip install nsepy
-import nsepy
 
-@st.cache_data(ttl=86400)
-def get_nse_stock_list():
-    """Get ALL NSE stocks using nsepy"""
-    try:
-        from nsepy import get_history
-        from nsepy.helpers import get_equity_list
-        stocks = get_equity_list()
-        return sorted(stocks)
-    except:
-        return get_comprehensive_stock_list()  # Fallback list
 # ---------------------------
 # PAGE CONFIG
 # ---------------------------
@@ -98,9 +86,35 @@ st.markdown("""
 # 1. STOCK LIST FUNCTIONS
 # ---------------------------
 @st.cache_data(ttl=86400)
+def get_nse_stock_list():
+    """Get ALL NSE stocks using multiple methods with fallback"""
+    try:
+        # Try nsetools first (most reliable)
+        from nsetools import Nse
+        nse = Nse()
+        stocks = nse.get_equity_list()
+        if stocks and len(stocks) > 100:
+            return sorted(stocks)
+    except:
+        pass
+    
+    try:
+        # Try nsepy as fallback
+        from nsepy import get_history
+        from nsepy.helpers import get_equity_list
+        stocks = get_equity_list()
+        if stocks and len(stocks) > 100:
+            return sorted(stocks)
+    except:
+        pass
+    
+    # Final fallback: comprehensive list
+    return get_comprehensive_stock_list()
+
+@st.cache_data(ttl=86400)
 def get_comprehensive_stock_list():
     """Extended stock list with all major stocks"""
-    return sorted(set([
+    stocks = [
         # NIFTY 50
         'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK',
         'ITC', 'HINDUNILVR', 'SBIN', 'BHARTIARTL', 'KOTAKBANK',
@@ -112,28 +126,50 @@ def get_comprehensive_stock_list():
         'HINDALCO', 'APOLLOHOSP', 'DRREDDY', 'CIPLA', 'DIVISLAB',
         'SUNPHARMA', 'UPL', 'SHREECEM', 'TECHM', 'ADANIENT',
         
-        # Your stocks
+        # Your specific stocks
         'POLYCAB', 'BOSCHLTD', 'LLOYDSENGG', 'DIXON', 'HAL', 'ORKLAINDIA',
         
-        # Add ALL missing stocks you want here
-        'HINDUNILVR', 'MARICO', 'DABUR', 'BRITANNIA', 'NESTLEIND',
-        'PIDILITIND', 'BERGEPAINT', 'ASIANPAINT', 'INDIGO', 'TATACONSUM',
+        # FMCG
+        'MARICO', 'DABUR', 'GODREJCP', 'TATACONSUM', 'NESTLEIND',
+        'BRITANNIA', 'PIDILITIND', 'BERGEPAINT', 'ASIANPAINT',
         
-        # BSE 100 and other major stocks
+        # Auto
+        'HEROMOTOCO', 'BAJAJ-AUTO', 'EICHERMOT', 'TIINDIA', 'ESCORTS',
+        'MOTHERSUMI', 'APOLLOTYRE', 'MRF', 'BALKRISIND',
+        
+        # Pharma
+        'LUPIN', 'BIOCON', 'TORNTPHARM', 'AUROPHARMA', 'GLENMARK',
+        'SUNPHARMA', 'DRREDDY', 'CIPLA', 'DIVISLAB',
+        
+        # Banking & Finance
         'HDFCLIFE', 'SBILIFE', 'ICICIPRULI', 'HDFCAMC', 'MUTHOOTFIN',
         'CHOLAFIN', 'BAJAJFINSV', 'BAJFINANCE', 'LICHSGFIN', 'PFC', 'RECLTD',
-        'PEL', 'SRF', 'ATUL', 'DEEPAKNTR', 'PIDILITIND',
+        'INDUSINDBK', 'AXISBANK', 'KOTAKBANK', 'HDFCBANK', 'ICICIBANK',
+        'SBIN', 'BANKBARODA', 'CANBK', 'PNB', 'IDFCFIRSTB',
+        
+        # Capital Goods
         'ABB', 'SIEMENS', 'VOLTAS', 'CROMPTON', 'HAVELLS',
         'BEL', 'BHEL', 'NMDC', 'GAIL', 'IOC', 'BPCL', 'HINDPETRO',
-        'HEROMOTOCO', 'BAJAJ-AUTO', 'EICHERMOT', 'TIINDIA', 'ESCORTS',
-        'DLF', 'GODREJPROP', 'OBEROIRLTY', 'PHOENIXLTD',
+        'L&T', 'BHEL', 'PEL', 'SRF', 'ATUL', 'DEEPAKNTR',
         
-        # Mid cap and small cap
+        # Real Estate & Infrastructure
+        'DLF', 'GODREJPROP', 'OBEROIRLTY', 'PHOENIXLTD',
+        'CONCOR', 'ADANIGREEN', 'ADANITRANS', 'ADANIPORTS',
+        
+        # Metals & Mining
+        'VEDL', 'JINDALSTEL', 'SAIL', 'NATIONALUM', 'HINDZINC',
+        'TATASTEEL', 'HINDALCO', 'COALINDIA', 'NTPC', 'POWERGRID',
+        
+        # IT
+        'TCS', 'INFY', 'WIPRO', 'HCLTECH', 'TECHM', 'LTTS',
+        
+        # Tech & New Age
         'IDEA', 'AIRTEL', 'JIOFIN', 'PAYTM', 'ZOMATO', 'SWIGGY',
-        'MRF', 'APOLLOTYRE', 'CEATLTD', 'BALKRISIND', 'MOTHERSUMI',
-        'LUPIN', 'BIOCON', 'TORNTPHARM', 'AUROPHARMA', 'GLENMARK',
-        'CONCOR', 'ADANIGREEN', 'ADANITRANS', 'VEDL', 'JINDALSTEL',
-        'SAIL', 'NATIONALUM', 'HINDZINC'
+        'INDIAMART', 'JUSTDIAL', 'NAUKRI',
+        
+        # Others
+        'INDIGO', 'TATACONSUM', 'TITAN', 'GRASIM', 'ULTRACEMCO',
+        'SHREECEM', 'ACC', 'AMBUJACEM'
     ]
     return sorted(set(stocks))
 
@@ -522,7 +558,7 @@ def create_chart(df, symbol):
         row=1, col=1
     )
     
-    # RSI - FIXED LINE
+    # RSI
     fig.add_trace(
         go.Scatter(x=df.index, y=df['rsi'], name='RSI', line=dict(color='purple')),
         row=2, col=1
@@ -555,7 +591,11 @@ def create_chart(df, symbol):
 def main():
     st.markdown('<div class="main-header">🇮🇳 Intraday Stock Predictor - All Indian Stocks</div>', unsafe_allow_html=True)
     
-    stock_list = get_comprehensive_stock_list()
+    # Try to get full NSE list, fallback to comprehensive
+    try:
+        stock_list = get_nse_stock_list()
+    except:
+        stock_list = get_comprehensive_stock_list()
     
     with st.sidebar:
         st.markdown("## ⚙️ Settings")
@@ -713,5 +753,4 @@ def main():
 # ---------------------------
 # 8. RUN APP
 # ---------------------------
-if __name__ == "__main__":
-    main()
+if __name__
